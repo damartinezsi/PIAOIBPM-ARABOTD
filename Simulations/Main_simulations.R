@@ -1,21 +1,22 @@
+```r
 #==============================================================================#
 # ---------------------------------------------------------------------------- #
-#              Main - Simulaciones Trabajo de grado D.A.M.S.                   #
+#              Main - Simulations                  D.A.M.S.                   #
 # ---------------------------------------------------------------------------- #
 #==============================================================================#
 
-# Generar los cluster para procesamiento paralelo
+# Generate clusters for parallel processing
 
 setwd("~/Tesis/Versión final - code")
 library(parallel)
 
-# Definir el número de clusters
+# Define the number of clusters
 num_cores <- detectCores() - 1 
 
-# Crear el cluster
+# Create the cluster
 cl <- makeCluster(num_cores)
 
-# Exportar los objetos necesarios al cluster
+# Export the required objects to the cluster
 clusterExport(cl, varlist = c("run_simulation","generate_ellipse_image",
                               "generate_samples", "recon_trod_tensor",
                               "vecnorm", "makeDirections","unimcd",
@@ -36,35 +37,36 @@ clusterEvalQ(cl, {
 })
 
 # ============================================================================ #
-#                Hallar valores de alpha y varianza explicada                  #
+#                Find alpha values and explained variance                     #
 # ============================================================================ #
 
-# Establecer la misma semilla en cada nodo (para reproducibilidad)
+# Set the same seed on each node for reproducibility
 clusterSetRNGStream(cl, 520)
 N_iter <-1000
 
-# Correr simulaciones y ordenar resultados
+# Run simulations and combine results
 results_ba <- parLapply(cl, 1:N_iter, Best_alpha)
 results_df_besta <- do.call(rbind, results_ba)
 
-#Observar los mejores valores de alpha y la varianza retenida
+# Examine the best alpha values and retained variance
 apply(results_df_besta,2,mean)
 
 # ============================================================================ #
-#        Medir el tiempo de descomposición - Hallar los UCL                    #
+#        Measure decomposition time - Obtain the UCLs                         #
 # ============================================================================ #
 
-# Establecer la misma semilla en cada nodo (para reproducibilidad)
+# Set the same seed on each node for reproducibility
 clusterSetRNGStream(cl, 520)
 
 results <- parLapply(cl, 1:N_iter, run_simulation)
 results_df <- do.call(rbind, results)
 
-# Detener los cluster 
+# Stop the cluster
 stopCluster(cl)
 
 round(apply(results_df,2,mean),4)
-# Valores de alpha para n=60 Imágenes ---------------------------------------
+
+# Alpha values for n = 60 images ---------------------------------------------
 
 alpha_TROD <-0.053        
 alpha_TROD_MCD <-0.052  
@@ -78,8 +80,8 @@ alpha_MACRO_MCD <-0.052
 alpha_MACRO_MCD_80 <-0.053
 
 
-# UCLs basados en percentiles empíricos --------------------------------------
-#Cartas T2 --------------------------------------------------------------------
+# UCLs based on empirical percentiles ----------------------------------------
+# T² charts ------------------------------------------------------------------
 
 UCL_T_TROD <- quantile(results_df$max_T2_TROD, probs = 1 - (alpha_TROD / 2))
 UCL_T_TROD_MCD <- quantile(results_df$max_T2_TROD_MCD, probs = 1 - (alpha_TROD_MCD / 2))
@@ -92,21 +94,22 @@ UCL_T_MACRO <- quantile(results_df$max_T2_MACRO, probs = 1 - (alpha_MACRO / 2))
 UCL_T_MACRO_MCD <- quantile(results_df$max_T2_MACRO_MCD, probs = 1 - (alpha_MACRO_MCD / 2))
 UCL_T_MACRO_MCD_80 <- quantile(results_df$max_T2_MACRO_MCD_80, probs = 1 - (alpha_MACRO_MCD_80 / 2))
 
-#Cartas Q ----------------------------------------------------------------------
+# Q charts -------------------------------------------------------------------
+
 UCL_Q_TROD <- quantile(results_df$max_Q_TROD, probs = 1 - (alpha_TROD / 2))
-UCL_Q_TROD_MCD <- quantile(results_df$max_Q_TROD, probs = 1 - (alpha_TROD_MCD / 2))
+UCL_Q_TROD_MCD <- quantile(results_df$max_Q_TROD_MCD, probs = 1 - (alpha_TROD_MCD / 2))
 
 UCL_Q_MPCA <- quantile(results_df$max_Q_MPCA, probs = 1 - (alpha_MPCA / 2))
-UCL_Q_MPCA_MCD <- quantile(results_df$max_Q_MPCA, probs = 1 - (alpha_MPCA_MCD / 2))
-UCL_Q_MPCA_MCD_80 <- quantile(results_df$max_Q_MPCA, probs = 1 - (alpha_MPCA_MCD_80 / 2))
+UCL_Q_MPCA_MCD <- quantile(results_df$max_Q_MPCA_MCD, probs = 1 - (alpha_MPCA_MCD / 2))
+UCL_Q_MPCA_MCD_80 <- quantile(results_df$max_Q_MPCA_MCD_80, probs = 1 - (alpha_MPCA_MCD_80 / 2))
 
 UCL_Q_MACRO <- quantile(results_df$max_Q_MACRO, probs = 1 - (alpha_MACRO / 2))
-UCL_Q_MACRO_MCD <- quantile(results_df$max_Q_MACRO, probs = 1 - (alpha_MACRO_MCD / 2))
-UCL_Q_MACRO_MCD_80 <- quantile(results_df$max_Q_MACRO, probs = 1 - (alpha_MACRO_MCD_80 / 2))
+UCL_Q_MACRO_MCD <- quantile(results_df$max_Q_MACRO_MCD, probs = 1 - (alpha_MACRO_MCD / 2))
+UCL_Q_MACRO_MCD_80 <- quantile(results_df$max_Q_MACRO_MCD_80, probs = 1 - (alpha_MACRO_MCD_80 / 2))
 
 
 # ============================================================================ #
-#           CARTAS CONJUNTAS T²–Q PARA TODOS LOS MÉTODOS Y VARIANTES           #
+#       JOINT T²–Q CHARTS FOR ALL METHODS AND VARIANTS                        #
 # ============================================================================ #
 
 # ------------------ TROD ------------------
@@ -148,10 +151,10 @@ results_df$SIGNAL_MACRO_MCD_80 <- as.integer(
 )
 
 # ============================================================================ #
-#                           Tasas de señal promedio                            #
+#                           Average signal rates                              #
 # ============================================================================ #
 
-cat("Tasa de señal promedio (bajo control):\n")
+cat("Average signal rate (in-control):\n")
 
 mean_vals <- c(
   TROD        = mean(results_df$SIGNAL_TROD),
@@ -170,15 +173,15 @@ print(round(mean_vals, 3))
 
 
 # ============================================================================ #
-#           Crear los clusters para correr las diferentes simulaciones         #
+#        Create clusters to run the different simulations                    #
 # ============================================================================ #
 
 num_cores <- detectCores() - 1  
 
-# Crear el cluster
+# Create the cluster
 cl <- makeCluster(num_cores)
 
-# Exportar los objetos necesarios al cluster
+# Export the required objects to the cluster
 clusterExport(cl, varlist = c("run_simulation","generate_ellipse_image",
                               "generate_samples", "recon_trod_tensor",
                               "vecnorm", "makeDirections", "unimcd",
@@ -199,18 +202,18 @@ clusterEvalQ(cl, {
 ###################################################################
 library(openxlsx)
 
-#delta_values <- seq(1, 5, by = 1)  # Para delta 1
-delta_values <- seq(8, 40, by = 8)  # Para delta 5A
+#delta_values <- seq(1, 5, by = 1)  # For delta 1
+delta_values <- seq(8, 40, by = 8)  # For delta 5A
 
 N_iter <- 1000
 
 
 # ================================== 95% ======================================= 
 
-# Establecer la misma semilla en cada nodo (para reproducibilidad)
+# Set the same seed on each node for reproducibility
 clusterSetRNGStream(cl, 520)
 
-# DataFrame vacío para guardar todo
+# Empty data frame to store all results
 results_signal <- data.frame()
 
 for (delta_sim in delta_values) {
@@ -276,11 +279,11 @@ for (delta_sim in delta_values) {
   )
   
   results_signal <- rbind(results_signal, señales_iter)
-  cat("Fin de delta:", delta_sim, "\n")
+  cat("End of delta:", delta_sim, "\n")
 }
 
 
-# Calculamos tasa de detección por método y delta
+# Calculate the detection rate for each method and delta
 tasa_senal <- aggregate(. ~ delta, data = results_signal, mean)
 
 print(tasa_senal)
@@ -290,10 +293,10 @@ write.xlsx(tasa_senal, file = "tasa_senal.xlsx", sheetName = "Resultados95", row
 
 # ================================== 90% ======================================= 
 
-# Establecer la misma semilla en cada nodo (para reproducibilidad)
+# Set the same seed on each node for reproducibility
 clusterSetRNGStream(cl, 520)
 
-# DataFrame vacío para guardar todo
+# Empty data frame to store all results
 results_signal <- data.frame()
 
 for (delta_sim in delta_values) {
@@ -359,11 +362,11 @@ for (delta_sim in delta_values) {
   )
   
   results_signal <- rbind(results_signal, señales_iter)
-  cat("Fin de delta:", delta_sim, "\n")
+  cat("End of delta:", delta_sim, "\n")
 }
 
 
-# Calculamos tasa de detección por método y delta
+# Calculate the detection rate for each method and delta
 tasa_senal2 <- aggregate(. ~ delta, data = results_signal, mean)
 
 print(tasa_senal2)
@@ -371,10 +374,10 @@ write.xlsx(tasa_senal2, file = "tasa_senal2.xlsx", sheetName = "Resultados90", r
 
 # ================================== 80% ======================================= 
 
-# Establecer la misma semilla en cada nodo (para reproducibilidad)
+# Set the same seed on each node for reproducibility
 clusterSetRNGStream(cl, 520)
 
-# DataFrame vacío para guardar todo
+# Empty data frame to store all results
 results_signal <- data.frame()
 
 for (delta_sim in delta_values) {
@@ -440,10 +443,10 @@ for (delta_sim in delta_values) {
   )
   
   results_signal <- rbind(results_signal, señales_iter)
-  cat("Fin de delta:", delta_sim, "\n")
+  cat("End of delta:", delta_sim, "\n")
 }
 
-# Calculamos tasa de detección por método y delta
+# Calculate the detection rate for each method and delta
 tasa_senal3 <- aggregate(. ~ delta, data = results_signal, mean)
 
 print(tasa_senal3)
@@ -452,10 +455,10 @@ write.xlsx(tasa_senal3, file = "tasa_senal3.xlsx", sheetName = "Resultados80", r
 
 # ================================== 70% ======================================= 
 
-# Establecer la misma semilla en cada nodo (para reproducibilidad)
+# Set the same seed on each node for reproducibility
 clusterSetRNGStream(cl, 520)
 
-# DataFrame vacío para guardar todo
+# Empty data frame to store all results
 results_signal <- data.frame()
 
 for (delta_sim in delta_values) {
@@ -521,11 +524,11 @@ for (delta_sim in delta_values) {
   )
   
   results_signal <- rbind(results_signal, señales_iter)
-  cat("Fin de delta:", delta_sim, "\n")
+  cat("End of delta:", delta_sim, "\n")
 }
 
 
-# Calculamos tasa de detección por método y delta
+# Calculate the detection rate for each method and delta
 tasa_senal4 <- aggregate(. ~ delta, data = results_signal, mean)
 
 print(tasa_senal4)
@@ -534,10 +537,10 @@ write.xlsx(tasa_senal4, file = "tasa_senal4.xlsx", sheetName = "Resultados70", r
 
 # ================================== 60% ======================================= 
 
-# Establecer la misma semilla en cada nodo (para reproducibilidad)
+# Set the same seed on each node for reproducibility
 clusterSetRNGStream(cl, 520)
 
-# DataFrame vacío para guardar todo
+# Empty data frame to store all results
 results_signal <- data.frame()
 
 for (delta_sim in delta_values) {
@@ -566,7 +569,7 @@ for (delta_sim in delta_values) {
     # ------------------ TROD ------------------
     señal_TROD      = as.integer(
       (resultados_df2$max_T2_TROD      > UCL_T_TROD) |
-        (resultados_df2$max_Q_TROD       > UCL_Q_TROD)
+        (resultados_df2$max_Q_TROD       > UCL_Q_T_TROD)
     ),
     señal_TROD_MCD  = as.integer(
       (resultados_df2$max_T2_TROD_MCD  > UCL_T_TROD_MCD) |
@@ -603,11 +606,11 @@ for (delta_sim in delta_values) {
   )
   
   results_signal <- rbind(results_signal, señales_iter)
-  cat("Fin de delta:", delta_sim, "\n")
+  cat("End of delta:", delta_sim, "\n")
 }
 
 
-# Calculamos tasa de detección por método y delta
+# Calculate the detection rate for each method and delta
 tasa_senal5 <- aggregate(. ~ delta, data = results_signal, mean)
 
 print(tasa_senal5)
